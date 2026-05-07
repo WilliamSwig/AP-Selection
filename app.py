@@ -3,15 +3,29 @@ import streamlit as st
 # 页面基础配置：设置标题与布局
 st.set_page_config(page_title="AP选课系统", layout="centered")
 
-# 强制通过 CSS 确保在任何主题下文字颜色均清晰（深灰色），避免白字问题
+# 强制通过 CSS 将基本信息的标签设为白色 ---
 st.markdown("""
     <style>
-    .stMarkdown, .stCheckbox, label, .stHeader { color: #1f2937 !important; }
-    .stExpander { border: 1px solid #d1d5db !important; border-radius: 8px !important; margin-bottom: 1rem !important; }
+    /* 针对基本信息部分的输入框标签进行颜色设置 */
+    /* 我们通过选择器定位到这些标签并强制设为白色 */
+    .stTextInput label, .stSelectbox label {
+        color: #FFFFFF !important;
+        font-weight: bold;
+    }
+    
+    /* 保持下方学科组折叠面板内的文字为清晰的深色（防止背景冲突） */
+    .stExpander label {
+        color: #1f2937 !important;
+    }
+
+    /* 学科组标题文字 */
+    .stExpander .stMarkdown p {
+        color: #1f2937 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🎓 万科高中部 AP 项目选课系统")
+st.title("🎓 VSPH AP 项目选课系统")
 st.info("提示：请根据最新教学大纲进行勾选。每个学科组必须至少选择一门课程。")
 
 # --- 第一部分：个人档案 ---
