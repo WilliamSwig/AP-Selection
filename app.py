@@ -19,10 +19,10 @@ st.subheader("一、学生基本信息")
 c1, c2 = st.columns(2)
 with c1:
     cn_name = st.text_input("中文姓名", placeholder="请填写")
-    grade = st.selectbox("年级", ["G10", "G11", "G12"])
+    grade = st.selectbox("今年9月就读年级", ["G10", "G11", "G12"])
     country = st.text_input("拟申请国家")
 with c2:
-    en_name = st.text_input("英文姓名", placeholder="Firstname LASTNAME")
+    en_name = st.text_input("英文姓名", placeholder="Firstname Lastname")
     class_name = st.text_input("行政班级")
     major = st.text_input("拟申请专业方向")
 
