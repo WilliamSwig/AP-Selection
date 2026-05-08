@@ -82,66 +82,81 @@ course_structure = {
 st.subheader("二、学科组选课")
 final_selections = {}
 
-# 1. 定义中文映射 (保持之前的逻辑)
+# 1. 定义映射关系
 chinese_mapping = {"G9": "中文文学 2 (基础)", "G10": "中文文学 3 (基础)", "G11": "中文文学 4 (荣誉)"}
 
-# 2. 定义英语组年级限制映射
 english_mapping = {
     "G9": ["ESL 2 (基础)", "10年级英语 (荣誉)", "EFL 2 (荣誉)", "英语文学 2 (荣誉)"],
     "G10": ["ESL 3 (基础)", "英语文学 3 (荣誉)", "AP 英语语言与写作 (荣誉)", "AP 英语语言与文学 (荣誉)"],
     "G11": ["ESL 3 (基础)", "英语文学 4 (荣誉)", "AP 英语语言与写作 (荣誉)", "AP 英语语言与文学 (荣誉)"]
 }
 
+humanities_mapping = {
+    "G9": ["预修AP商科 (基础)", "AP 微观经济 (荣誉)", "基础美国历史 (基础)", "预修AP心理学 (基础)"],
+    "G10": ["预修AP商科 (基础)", "AP商科 (荣誉)", "AP 微观经济 (荣誉)", "AP 宏观经济 (荣誉)", "AP 美国历史 (荣誉)", "AP 世界历史 (荣誉)", "预修AP心理学 (基础)", "AP 心理学 (荣誉)"],
+    "G11": ["AP商科 (荣誉)", "AP 宏观经济 (荣誉)", "AP 美国历史 (荣誉)", "AP 世界历史 (荣誉)", "AP 心理学 (荣誉)"]
+}
+
+# 定义人文组“预修 vs AP”互斥对
+exclusive_pairs = [
+    ("预修AP商科 (基础)", "AP商科 (荣誉)"),
+    ("预修AP心理学 (基础)", "AP 心理学 (荣誉)")
+]
+
 for g_title, courses in course_structure.items():
     with st.expander(f"📖 {g_title}", expanded=True):
         selected_list = []
 
-        # --- Case A: 中文文学逻辑 (严格年级匹配，自动勾选并锁定) ---
+        # --- Group 1: 中文文学 (逻辑同前) ---
         if "Group 1" in g_title:
-            target_course = chinese_mapping.get(grade)
+            target = chinese_mapping.get(grade)
             for course_name in courses:
-                is_correct = (course_name == target_course)
-                # 强制同步：只有匹配年级的才打钩，且全部设为 disabled 防止手动取消必修
+                is_correct = (course_name == target)
                 st.checkbox(course_name, value=is_correct, disabled=True, key=f"ch_{course_name}_{grade}")
-                if is_correct:
-                    selected_list.append(course_name)
+                if is_correct: selected_list.append(course_name)
 
-        # --- Case B: 英语课程逻辑 (年级过滤 + 最多选两门) ---
+        # --- Group 2: 英语课程 (逻辑同前) ---
         elif "Group 2" in g_title:
-            allowed_english = english_mapping.get(grade, [])
-            
-            # 统计当前英语组已经选了多少个 (利用 session_state)
-            # 先定义一个临时列表存当前年级下哪些被勾选了
-            current_en_selections = []
-            for course_name in allowed_english:
-                if st.session_state.get(f"en_{course_name}_{grade}", False):
-                    current_en_selections.append(course_name)
-            
-            num_selected = len(current_en_selections)
+            allowed_en = english_mapping.get(grade, [])
+            current_en = [c for c in allowed_en if st.session_state.get(f"en_{c}_{grade}", False)]
             cols = st.columns(2)
-            
             for idx, course_name in enumerate(courses):
                 with cols[idx % 2]:
-                    # 逻辑判断：
-                    # 1. 如果不在当前年级可选列表中，强制不打钩并变灰
-                    # 2. 如果已经选满2门，且当前课程未被选中，则变灰
-                    is_in_grade = course_name in allowed_english
-                    is_checked_now = st.session_state.get(f"en_{course_name}_{grade}", False)
-                    
-                    should_disabled = not is_in_grade or (num_selected >= 2 and not is_checked_now)
-                    should_value = is_checked_now if is_in_grade else False
+                    is_in_grade = course_name in allowed_en
+                    is_checked = st.session_state.get(f"en_{course_name}_{grade}", False)
+                    should_disable = not is_in_grade or (len(current_en) >= 2 and not is_checked)
+                    if st.checkbox(course_name, value=(is_checked if is_in_grade else False), 
+                                   disabled=should_disable, key=f"en_{course_name}_{grade}"):
+                        selected_list.append(course_name)
 
+        # --- Group 3: 人文科学 (年级限制 + 预修/AP互斥) ---
+        elif "Group 3" in g_title:
+            allowed_hu = humanities_mapping.get(grade, [])
+            cols = st.columns(2)
+            for idx, course_name in enumerate(courses):
+                with cols[idx % 2]:
+                    # 1. 基础年级准入
+                    is_in_grade = course_name in allowed_hu
+                    # 2. 检查互斥逻辑
+                    is_excluded = False
+                    for pre, ap in exclusive_pairs:
+                        if course_name == pre and st.session_state.get(f"hu_{ap}_{grade}", False):
+                            is_excluded = True
+                        if course_name == ap and st.session_state.get(f"hu_{pre}_{grade}", False):
+                            is_excluded = True
+                    
+                    # 当前是否被选中（仅在符合年级且未被互斥时有效）
+                    current_val = st.session_state.get(f"hu_{course_name}_{grade}", False) if is_in_grade else False
+                    
                     if st.checkbox(
                         course_name, 
-                        value=should_value, 
-                        disabled=should_disabled, 
-                        key=f"en_{course_name}_{grade}"
+                        value=current_val,
+                        disabled=not is_in_grade or (is_excluded and not current_val),
+                        key=f"hu_{course_name}_{grade}"
                     ):
                         selected_list.append(course_name)
-            
-            st.caption(f"💡 英语组提示：{grade} 可选课程已过滤，每人至多选修 2 门（已选 {num_selected}/2）。")
 
-        # --- Case C: 其他学科组保持原样 ---
+        # --- 其他学科组 ---
         else:
             cols = st.columns(2)
             for idx, course_name in enumerate(courses):
