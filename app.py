@@ -9,24 +9,28 @@ st.set_page_config(page_title="AP选课系统", layout="centered")
 # --- 初始化 Google Sheets 连接 ---
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# 强制通过 CSS 将基本信息的标签设为白色 ---
+# 更改点：使用 CSS 变量 --text-color 代替固定颜色
 st.markdown("""
     <style>
-    /* 针对基本信息部分的输入框标签进行颜色设置 */
-    /* 我们通过选择器定位到这些标签并强制设为白色 */
+    /* 针对基本信息部分的输入框标签：跟随系统文本颜色变量 */
     .stTextInput label, .stSelectbox label {
-        color: #FFFFFF !important;
+        color: var(--text-color) !important;
         font-weight: bold;
     }
     
-    /* 保持下方学科组折叠面板内的文字为清晰的深色（防止背景冲突） */
+    /* 针对折叠面板 (Expander) 内的文字：同样跟随系统变量 */
     .stExpander label {
-        color: #1f2937 !important;
+        color: var(--text-color) !important;
     }
 
-    /* 学科组标题文字 */
+    /* 针对学科组标题文字 */
     .stExpander .stMarkdown p {
-        color: #1f2937 !important;
+        color: var(--text-color) !important;
+    }
+    
+    /* 可选：如果你希望分界线颜色也自适应 */
+    hr {
+        border-color: var(--secondary-bg-color) !important;
     }
     </style>
     """, unsafe_allow_html=True)
