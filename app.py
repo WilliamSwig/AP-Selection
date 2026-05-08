@@ -1,7 +1,13 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
+import pandas as pd
+from datetime import datetime
 
-# 页面基础配置：设置标题与布局
+# 页面配置
 st.set_page_config(page_title="AP选课系统", layout="centered")
+
+# --- 初始化 Google Sheets 连接 ---
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 # 强制通过 CSS 将基本信息的标签设为白色 ---
 st.markdown("""
@@ -254,22 +260,44 @@ if has_physics_c and has_pre_calc and not has_calculus:
 # --- 第五部分：提交与结果汇总 ---
 st.divider()
 if st.button("确认并提交选课申请", type="primary", use_container_width=True):
-    # 基础信息完整性校验
-    info_incomplete = not (cn_name and en_name and class_name)
-    # 必选学科组校验
-    required_groups = list(course_structure.keys())
-    empty_groups = [g for g in required_groups if not final_selections[g]]
+    # [这里保留你之前的 info_incomplete 和 empty_groups 检查代码...]
     
     if conflict_flag:
-        st.error("请先修正物理与数学的先修逻辑冲突。")
+        st.error("请先修正逻辑冲突")
     elif info_incomplete:
-        st.error("个人档案信息未填写完整。")
+        st.error("信息未填写完整")
     elif empty_groups:
-        st.error(f"每个学科组至少需选一门，请检查：{', '.join(empty_groups)}")
+        st.error(f"请检查未选课程组: {', '.join(empty_groups)}")
     else:
-        st.balloons()
-        st.success("🎉 提交成功！请截图保存此页面汇总。")
-        st.write("---")
-        st.write(f"**学生：** {cn_name} | {en_name}  **班级：** {class_name}")
-        for g, clist in final_selections.items():
-            st.write(f"**{g}：** {', '.join(clist)}")
+        try:
+            # 1. 整理当前学生的选课结果为一行文本
+            details_text = ""
+            for g, clist in final_selections.items():
+                details_text += f"【{g}: {', '.join(clist)}】 "
+
+            # 2. 构造新的数据行 (Pandas DataFrame)
+            new_row = pd.DataFrame([{
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "CN_Name": cn_name,
+                "EN_Name": en_name,
+                "Grade": grade,
+                "Class": class_name,
+                "Major": major,
+                "Selections": details_text
+            }])
+
+            # 3. 关键步骤：读取现有表格数据
+            # 建议将 ttl 设为 0，确保拿到的是表格最新的状态，避免覆盖别人的提交
+            existing_data = conn.read(worksheet="Sheet1", ttl=0)
+            
+            # 4. 将新行合并到旧数据中
+            updated_df = pd.concat([existing_data, new_row], ignore_index=True)
+            
+            # 5. 写回 Google Sheets
+            conn.update(worksheet="Sheet1", data=updated_df)
+
+            st.balloons()
+            st.success("🎉 提交成功！选课数据已同步至教务表格。")
+            
+        except Exception as e:
+            st.error(f"提交至云端失败，请检查网络或配置。详情: {e}")
