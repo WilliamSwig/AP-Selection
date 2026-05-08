@@ -179,11 +179,54 @@ for g_title, courses in course_structure.items():
                                    key=f"math_{course_name}_{grade}"):
                         selected_list.append(course_name)
 
-        # D. 其他组 (Group 6 & Cores)
-        else:
+        # --- D. 艺术组 ---
+        elif "Group 6" in g_title:
+            any_art_selected = any(st.session_state.get(f"art_{a}_{grade}", False) for a in art_exclusive_group)
             for idx, course_name in enumerate(courses):
                 with cols[idx % 2]:
-                    if st.checkbox(course_name, key=f"other_{course_name}_{grade}"):
+                    is_art_excluded = False
+                    if course_name in art_exclusive_group:
+                        is_this_art_selected = st.session_state.get(f"art_{course_name}_{grade}", False)
+                        if any_art_selected and not is_this_art_selected: is_art_excluded = True
+                    if st.checkbox(course_name, disabled=is_art_excluded, key=f"art_{course_name}_{grade}"):
+                        selected_list.append(course_name)
+
+        # --- E. 校本核心课程 (逻辑重构) ---
+        elif "School cores" in g_title:
+            for idx, course_name in enumerate(courses):
+                with cols[idx % 2]:
+                    # 默认状态逻辑
+                    is_fixed_selected = False
+                    is_disabled = False
+                    
+                    # 1. 必选：社团、体育&赛艇
+                    if course_name in ["社团 (基础)", "体育&赛艇 (基础)"]:
+                        is_fixed_selected = True
+                        is_disabled = True
+                    
+                    # 2. 必选分支：职业规划 (G9) / 升学指导 (G10/G11)
+                    elif course_name == "职业规划 (基础)":
+                        if grade == "G9":
+                            is_fixed_selected = True
+                            is_disabled = True
+                        else:
+                            is_disabled = True # 非G9不可选
+                    elif course_name == "升学指导 (基础)":
+                        if grade in ["G10", "G11"]:
+                            is_fixed_selected = True
+                            is_disabled = True
+                        else:
+                            is_disabled = True # G9不可选
+                    
+                    # 3. 选修逻辑：AP研讨(全员) / AP自由课题(G10/11)
+                    elif course_name == "AP 自由课题 (荣誉)":
+                        if grade == "G9":
+                            is_disabled = True
+
+                    # 渲染复选框
+                    if st.checkbox(course_name, value=is_fixed_selected, disabled=is_disabled, key=f"core_{course_name}_{grade}"):
+                        selected_list.append(course_name)
+                    elif is_fixed_selected: # 即使disabled也要记录在最终名单中
                         selected_list.append(course_name)
 
         final_selections[g_title] = selected_list
