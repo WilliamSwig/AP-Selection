@@ -268,21 +268,34 @@ if has_physics_c and has_pre_calc and not has_calculus:
 
 # --- 第五部分：提交与结果汇总 ---
 st.divider()
+
 if st.button("确认并提交选课申请", type="primary", use_container_width=True):
-    # [这里保留你之前的 info_incomplete 和 empty_groups 检查代码...]
     
+    # 【关键：这里必须定义这个变量】
+    # 检查中文名、英文名、班级是否填写（你可以根据需要增加字段）
+    info_incomplete = not (cn_name and en_name and class_name)
+    
+    # 检查必选组是否漏选
+    required_groups = list(course_structure.keys())
+    empty_groups = [g for g in required_groups if not final_selections[g]]
+    
+    # --- 开始判断 ---
     if conflict_flag:
-        st.error("请先修正逻辑冲突")
-    elif info_incomplete:
-        st.error("信息未填写完整")
+        st.error("请先修正物理与数学的先修逻辑冲突。")
+    
+    elif info_incomplete:  # 现在程序认识这个变量了
+        st.error("个人档案信息未填写完整（姓名、班级为必填）。")
+        
     elif empty_groups:
-        st.error(f"请检查未选课程组: {', '.join(empty_groups)}")
+        st.error(f"每个学科组至少需选一门，请检查：{', '.join(empty_groups)}")
+        
     else:
+        # 这里开始执行正常的 Google Sheets 提交逻辑...
         try:
-            # 1. 整理当前学生的选课结果为一行文本
-            details_text = ""
-            for g, clist in final_selections.items():
-                details_text += f"【{g}: {', '.join(clist)}】 "
+            # (之前的 conn.read 和 conn.update 代码)
+            st.success("提交成功！")
+        except Exception as e:
+            st.error(f"提交失败: {e}")
 
             # 2. 构造新的数据行 (Pandas DataFrame)
             new_row = pd.DataFrame([{
