@@ -40,7 +40,7 @@ c1, c2 = st.columns(2)
 with c1:
     cn_name = st.text_input("中文姓名", placeholder="请填写")
     grade = st.selectbox("当前就读年级", ["G9","G10", "G11"])
-    country = st.text_input("拟申请国家",placeholder="请填写")
+    country = st.text_input("拟申请国家或地区",placeholder="请填写")
 with c2:
     en_name = st.text_input("英文姓名", placeholder="请填写")
     class_name = st.text_input("行政班级",placeholder="请填写")
@@ -310,13 +310,13 @@ if st.button("确认并提交选课申请", type="primary", use_container_width=
 
             # 3. 关键步骤：读取现有表格数据
             # 建议将 ttl 设为 0，确保拿到的是表格最新的状态，避免覆盖别人的提交
-            existing_data = conn.read(worksheet="Sheet1", ttl=0)
+            existing_data = conn.read(worksheet="AP_Selection_Database", ttl=0)
             
             # 4. 将新行合并到旧数据中
             updated_df = pd.concat([existing_data, new_row], ignore_index=True)
             
             # 5. 写回 Google Sheets
-            conn.update(worksheet="Sheet1", data=updated_df)
+            conn.update(worksheet="AP_Selection_Database", data=updated_df)
 
             st.balloons()
             st.success("🎉 提交成功！选课数据已同步至教务表格。")
