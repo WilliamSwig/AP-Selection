@@ -126,6 +126,15 @@ exclusive_pairs = [
 ]
 calculus_trio = ["IG 0580 2" , "AP 预备微积分 (荣誉)", "AP 微积分 AB (荣誉)", "AP 微积分 BC (荣誉)"]
 
+# 在这里添加艺术组定义
+art_exclusive_group = [
+    "基础艺术 (基础)", 
+    "AP 艺术-2D (荣誉)", 
+    "AP 艺术-3D (荣誉)", 
+    "AP 绘画 (荣誉)", 
+    "艺术鉴赏 (荣誉)"
+]
+
 # 2. 循环渲染学科组
 for g_title, courses in course_structure.items():
     with st.expander(f"📖 {g_title}", expanded=True):
