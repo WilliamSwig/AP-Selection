@@ -93,27 +93,29 @@ for g_title, courses in course_structure.items():
     with st.expander(f"📖 {g_title}", expanded=True):
         selected_list = []
         
-        # --- 针对 Group 1 中文文学的特殊逻辑处理 ---
+        # --- 针对 Group 1 中文文学的特殊互斥逻辑 ---
         if "Group 1" in g_title:
             target_course = chinese_mapping.get(grade)
             for course_name in courses:
-                # 只有匹配当前年级的课程才可选，其余设为 disabled
-                is_disabled = (course_name != target_course)
+                # 核心逻辑：
+                # 1. 只有当课程名匹配当前年级时，is_correct_course 为 True
+                # 2. value 设为 is_correct_course，强制让不匹配的选项“不打钩”
+                # 3. disabled 设为 True，防止学生手动去勾选不符合年级的选项
+                is_correct_course = (course_name == target_course)
                 
-                # 如果是当前年级对应的课程，默认帮学生勾选（可选）
-                is_checked = st.checkbox(
+                checked = st.checkbox(
                     course_name, 
-                    value=(course_name == target_course),
-                    disabled=is_disabled,
-                    key=f"sel_{course_name}"
+                    value=is_correct_course, # 强制状态同步
+                    disabled=True,           # 锁定状态，不允许手动更改
+                    key=f"sel_{course_name}_{grade}" # 加入 grade 变量确保年级切换时 key 刷新
                 )
-                if is_checked:
+                
+                if checked:
                     selected_list.append(course_name)
-            
-            if not selected_list:
-                st.warning(f"请确认勾选 {grade} 对应的 {target_course}")
-        
-        # --- 其余学科组保持原样 ---
+                    
+            st.caption(f"已根据您的年级 ({grade}) 自动锁定必修科目。")
+
+        # --- 其余学科组保持原样（允许自由多选/单选） ---
         else:
             cols = st.columns(2)
             for idx, course_name in enumerate(courses):
