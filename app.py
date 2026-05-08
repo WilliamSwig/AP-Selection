@@ -319,9 +319,9 @@ if st.button("确认并提交选课申请", type="primary", use_container_width=
             new_row = pd.DataFrame([record])
 
             # 4. 写入 Google Sheets
-            existing_data = conn.read(worksheet="AP_Selection_Database", ttl=0)
+            existing_data = conn.read(worksheet="Sheet1", ttl=0)
             updated_df = pd.concat([existing_data, new_row], ignore_index=True)
-            conn.update(worksheet="AP_Selection_Database", data=updated_df)
+            conn.update(worksheet="Sheet1", data=updated_df)
             
             st.balloons()
             st.success("🎉 选课数据已按学科组分列写入表格！")
