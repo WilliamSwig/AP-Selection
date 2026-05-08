@@ -281,12 +281,13 @@ if st.button("确认并提交选课申请", type="primary", use_container_width=
         st.error("请先修正逻辑冲突。")
     elif info_incomplete:
         st.error("个人档案信息未填写完整。")
-    elif empty_groups:
+elif empty_groups:
         st.error(f"每个学科组至少需选一门，请检查：{', '.join(empty_groups)}")
+        
     else:
-        # --- 重点：try...except 块放在这里 ---
-try:
-            # A. 构造基础信息字典
+        # --- 注意：从这里开始，下面的代码都要比 else 往右多出 4 个空格 ---
+        try:
+            # 1. 构造基础信息字典
             record = {
                 "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "CN_Name": cn_name,
@@ -297,28 +298,20 @@ try:
                 "Major": major
             }
 
-            # B. 动态拆分学科组到不同列
-            # 将 final_selections 里的每个组名作为 key，选中的课程作为 value
+            # 2. 动态拆分学科组到不同列
             for group_name, selected_courses in final_selections.items():
-                # 我们简化一下列名，去掉 Group 1 这种前缀，或者保留全名
-                column_name = group_name.split(":")[0] # 这样列名会变成 "Group 1", "Group 2" 等
-                # 或者直接用 group_name 保持完整性
                 record[group_name] = ", ".join(selected_courses)
 
-            # C. 转换为 DataFrame
+            # 3. 转换为 DataFrame
             new_row = pd.DataFrame([record])
 
-            # D. 写入 Google Sheets
+            # 4. 写入 Google Sheets
             existing_data = conn.read(worksheet="Sheet1", ttl=0)
-            
-            # 使用 ignore_index=True，Pandas 会自动匹配列名
-            # 如果新数据里有表格之前没有的列（组名），它会自动在右侧补全
             updated_df = pd.concat([existing_data, new_row], ignore_index=True)
             conn.update(worksheet="Sheet1", data=updated_df)
             
             st.balloons()
             st.success("🎉 选课数据已按学科组分列写入表格！")
-            
+
         except Exception as e:
-            # 如果写入失败，会在页面上显示红色的报错信息，方便你排查
             st.error(f"写入失败。具体原因: {e}")
