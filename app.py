@@ -78,12 +78,12 @@ course_structure = {
     ]
 }
 
-# --- 第三部分：动态选课界面渲染 ---
+# --- 第三部分：动态选课界面渲染 (全量重构版) ---
 st.subheader("二、学科组选课")
 final_selections = {}
 
-# 1. 定义映射关系
-chinese_mapping = {"G9": "中文文学 2 (基础)", "G10": "中文文学 3 (基础)", "G11": "中文文学 4 (荣誉)"}
+# 1. 逻辑配置映射
+chinese_mapping = {"G9": ["中文文学 2 (基础)"], "G10": ["中文文学 3 (基础)"], "G11": ["中文文学 4 (荣誉)"]}
 
 english_mapping = {
     "G9": ["ESL 2 (基础)", "10年级英语 (荣誉)", "EFL 2 (荣誉)", "英语文学 2 (荣誉)"],
@@ -97,75 +97,97 @@ humanities_mapping = {
     "G11": ["AP商科 (荣誉)", "AP 宏观经济 (荣誉)", "AP 美国历史 (荣誉)", "AP 世界历史 (荣誉)", "AP 心理学 (荣誉)"]
 }
 
-# 定义人文组“预修 vs AP”互斥对
+science_mapping = {
+    "G9": ["AP 物理 1 (荣誉)", "AP 物理 C 力学 (荣誉)", "预修AP物理（力学） (基础)", "预修 AP 生物 (基础)", "预修 AP 化学 (基础)"],
+    "G10": course_structure["Group 4: Sciences - 科学 (必修1-2门)"],
+    "G11": ["AP 物理 C 电磁 (荣誉)", "AP 生物 (荣誉)", "AP 化学 (荣誉)"]
+}
+
+# 数学组逻辑映射 (根据您的新要求)
+math_mapping = {
+    "G9": ["IG0580 2 (基础)", "AP 预备微积分 (荣誉)", "AP 微积分 AB (荣誉)", "AP 微积分 BC (荣誉)", "AP 计算机应用 (荣誉)"],
+    "G10": ["AP 预备微积分 (荣誉)", "AP 微积分 AB (荣誉)", "AP 微积分 BC (荣誉)", "AP 统计 (荣誉)", "线性代数 (荣誉)", "多元微积分 (荣誉)", "AP 计算机应用 (荣誉)"],
+    "G11": ["AP 预备微积分 (荣誉)", "AP 微积分 AB (荣誉)", "AP 微积分 BC (荣誉)", "AP 统计 (荣誉)", "线性代数 (荣誉)", "多元微积分 (荣誉)", "AP 计算机应用 (荣誉)"]
+}
+
+# 互斥定义
 exclusive_pairs = [
     ("预修AP商科 (基础)", "AP商科 (荣誉)"),
-    ("预修AP心理学 (基础)", "AP 心理学 (荣誉)")
+    ("预修AP心理学 (基础)", "AP 心理学 (荣誉)"),
+    ("预修AP物理（力学） (基础)", "AP 物理 C 力学 (荣誉)"),
+    ("预修 AP 生物 (基础)", "AP 生物 (荣誉)"),
+    ("预修 AP 化学 (基础)", "AP 化学 (荣誉)")
 ]
+calculus_trio = ["AP 预备微积分 (荣誉)", "AP 微积分 AB (荣誉)", "AP 微积分 BC (荣誉)"]
 
+# 2. 循环渲染学科组
 for g_title, courses in course_structure.items():
     with st.expander(f"📖 {g_title}", expanded=True):
         selected_list = []
-
-        # --- Group 1: 中文文学 (逻辑同前) ---
-        if "Group 1" in g_title:
-            target = chinese_mapping.get(grade)
-            for course_name in courses:
-                is_correct = (course_name == target)
-                st.checkbox(course_name, value=is_correct, disabled=True, key=f"ch_{course_name}_{grade}")
-                if is_correct: selected_list.append(course_name)
-
-        # --- Group 2: 英语课程 (逻辑同前) ---
-        elif "Group 2" in g_title:
-            allowed_en = english_mapping.get(grade, [])
-            current_en = [c for c in allowed_en if st.session_state.get(f"en_{c}_{grade}", False)]
-            cols = st.columns(2)
-            for idx, course_name in enumerate(courses):
-                with cols[idx % 2]:
-                    is_in_grade = course_name in allowed_en
-                    is_checked = st.session_state.get(f"en_{course_name}_{grade}", False)
-                    should_disable = not is_in_grade or (len(current_en) >= 2 and not is_checked)
-                    if st.checkbox(course_name, value=(is_checked if is_in_grade else False), 
-                                   disabled=should_disable, key=f"en_{course_name}_{grade}"):
-                        selected_list.append(course_name)
-
-        # --- Group 3: 人文科学 (年级限制 + 预修/AP互斥) ---
-        elif "Group 3" in g_title:
-            allowed_hu = humanities_mapping.get(grade, [])
-            cols = st.columns(2)
-            for idx, course_name in enumerate(courses):
-                with cols[idx % 2]:
-                    # 1. 基础年级准入
-                    is_in_grade = course_name in allowed_hu
-                    # 2. 检查互斥逻辑
-                    is_excluded = False
-                    for pre, ap in exclusive_pairs:
-                        if course_name == pre and st.session_state.get(f"hu_{ap}_{grade}", False):
-                            is_excluded = True
-                        if course_name == ap and st.session_state.get(f"hu_{pre}_{grade}", False):
-                            is_excluded = True
-                    
-                    # 当前是否被选中（仅在符合年级且未被互斥时有效）
-                    current_val = st.session_state.get(f"hu_{course_name}_{grade}", False) if is_in_grade else False
-                    
-                    if st.checkbox(
-                        course_name, 
-                        value=current_val,
-                        disabled=not is_in_grade or (is_excluded and not current_val),
-                        key=f"hu_{course_name}_{grade}"
-                    ):
-                        selected_list.append(course_name)
-
-        # --- 其他学科组 ---
-        else:
-            cols = st.columns(2)
-            for idx, course_name in enumerate(courses):
-                with cols[idx % 2]:
-                    if st.checkbox(course_name, key=f"sel_{course_name}"):
-                        selected_list.append(course_name)
+        cols = st.columns(2)
         
-        final_selections[g_title] = selected_list
+        # --- 分学科组逻辑处理 ---
+        
+        # A. 中文与英语组
+        if "Group 1" in g_title or "Group 2" in g_title:
+            allowed = chinese_mapping.get(grade, []) if "Group 1" in g_title else english_mapping.get(grade, [])
+            for idx, course_name in enumerate(courses):
+                with cols[idx % 2]:
+                    is_in_grade = course_name in allowed
+                    if st.checkbox(course_name, disabled=not is_in_grade, key=f"lang_{course_name}_{grade}"):
+                        selected_list.append(course_name)
 
+        # B. 人文与科学组 (包含前后期课程互斥)
+        elif "Group 3" in g_title or "Group 4" in g_title:
+            allowed = humanities_mapping.get(grade, []) if "Group 3" in g_title else science_mapping.get(grade, [])
+            prefix = "hu" if "Group 3" in g_title else "sci"
+            for idx, course_name in enumerate(courses):
+                with cols[idx % 2]:
+                    is_in_grade = course_name in allowed
+                    is_excluded = False
+                    # 检查互斥对
+                    for p1, p2 in exclusive_pairs:
+                        if course_name == p1 and st.session_state.get(f"{prefix}_{p2}_{grade}", False): is_excluded = True
+                        if course_name == p2 and st.session_state.get(f"{prefix}_{p1}_{grade}", False): is_excluded = True
+                    
+                    checked = st.session_state.get(f"{prefix}_{course_name}_{grade}", False)
+                    if st.checkbox(course_name, value=checked if is_in_grade else False, 
+                                   disabled=not is_in_grade or (is_excluded and not checked), 
+                                   key=f"{prefix}_{course_name}_{grade}"):
+                        selected_list.append(course_name)
+
+        # C. 数学组 (微积分三选一互斥 + 年级过滤)
+        elif "Group 5" in g_title:
+            allowed = math_mapping.get(grade, [])
+            # 检查当前微积分三选一是否有任何一个已被勾选
+            any_calc_selected = any(st.session_state.get(f"math_{c}_{grade}", False) for c in calculus_trio)
+            
+            for idx, course_name in enumerate(courses):
+                with cols[idx % 2]:
+                    is_in_grade = course_name in allowed
+                    is_calc_excluded = False
+                    
+                    # 微积分互斥逻辑
+                    if course_name in calculus_trio:
+                        is_this_selected = st.session_state.get(f"math_{course_name}_{grade}", False)
+                        if any_calc_selected and not is_this_selected:
+                            is_calc_excluded = True
+                    
+                    checked = st.session_state.get(f"math_{course_name}_{grade}", False)
+                    if st.checkbox(course_name, value=checked if is_in_grade else False,
+                                   disabled=not is_in_grade or is_calc_excluded,
+                                   key=f"math_{course_name}_{grade}"):
+                        selected_list.append(course_name)
+
+        # D. 其他组 (Group 6 & Cores)
+        else:
+            for idx, course_name in enumerate(courses):
+                with cols[idx % 2]:
+                    if st.checkbox(course_name, key=f"other_{course_name}_{grade}"):
+                        selected_list.append(course_name)
+
+        final_selections[g_title] = selected_list
+        
 # --- 第四部分：底层逻辑冲突校验 ---
 math_choices = final_selections["Group 5: Mathematics and Computer Science - 数学与计算机 (必修)"]
 sci_choices = final_selections["Group 4: Sciences - 科学 (必修1-2门)"]
