@@ -82,15 +82,45 @@ course_structure = {
 st.subheader("二、学科组选课")
 final_selections = {}
 
+# 定义年级与中文课程的对应关系
+chinese_mapping = {
+    "G9": "中文文学 2 (基础)",
+    "G10": "中文文学 3 (基础)",
+    "G11": "中文文学 4 (荣誉)"
+}
+
 for g_title, courses in course_structure.items():
-    # 使用折叠面板保持界面整洁
     with st.expander(f"📖 {g_title}", expanded=True):
         selected_list = []
-        cols = st.columns(2)
-        for idx, course_name in enumerate(courses):
-            with cols[idx % 2]:
-                if st.checkbox(course_name, key=f"sel_{course_name}"):
+        
+        # --- 针对 Group 1 中文文学的特殊逻辑处理 ---
+        if "Group 1" in g_title:
+            target_course = chinese_mapping.get(grade)
+            for course_name in courses:
+                # 只有匹配当前年级的课程才可选，其余设为 disabled
+                is_disabled = (course_name != target_course)
+                
+                # 如果是当前年级对应的课程，默认帮学生勾选（可选）
+                is_checked = st.checkbox(
+                    course_name, 
+                    value=(course_name == target_course),
+                    disabled=is_disabled,
+                    key=f"sel_{course_name}"
+                )
+                if is_checked:
                     selected_list.append(course_name)
+            
+            if not selected_list:
+                st.warning(f"请确认勾选 {grade} 对应的 {target_course}")
+        
+        # --- 其余学科组保持原样 ---
+        else:
+            cols = st.columns(2)
+            for idx, course_name in enumerate(courses):
+                with cols[idx % 2]:
+                    if st.checkbox(course_name, key=f"sel_{course_name}"):
+                        selected_list.append(course_name)
+        
         final_selections[g_title] = selected_list
 
 # --- 第四部分：底层逻辑冲突校验 ---
