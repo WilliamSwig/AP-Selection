@@ -82,40 +82,66 @@ course_structure = {
 st.subheader("二、学科组选课")
 final_selections = {}
 
-# 定义年级与中文课程的对应关系
-chinese_mapping = {
-    "G9": "中文文学 2 (基础)",
-    "G10": "中文文学 3 (基础)",
-    "G11": "中文文学 4 (荣誉)"
+# 1. 定义中文映射 (保持之前的逻辑)
+chinese_mapping = {"G9": "中文文学 2 (基础)", "G10": "中文文学 3 (基础)", "G11": "中文文学 4 (荣誉)"}
+
+# 2. 定义英语组年级限制映射
+english_mapping = {
+    "G9": ["ESL 2 (基础)", "10年级英语 (荣誉)", "EFL 2 (荣誉)", "英语文学 2 (荣誉)"],
+    "G10": ["ESL 3 (基础)", "英语文学 3 (荣誉)", "AP 英语语言与写作 (荣誉)", "AP 英语语言与文学 (荣誉)"],
+    "G11": ["ESL 3 (基础)", "英语文学 4 (荣誉)", "AP 英语语言与写作 (荣誉)", "AP 英语语言与文学 (荣誉)"]
 }
 
 for g_title, courses in course_structure.items():
     with st.expander(f"📖 {g_title}", expanded=True):
         selected_list = []
-        
-        # --- 针对 Group 1 中文文学的特殊互斥逻辑 ---
+
+        # --- Case A: 中文文学逻辑 (严格年级匹配，自动勾选并锁定) ---
         if "Group 1" in g_title:
             target_course = chinese_mapping.get(grade)
             for course_name in courses:
-                # 核心逻辑：
-                # 1. 只有当课程名匹配当前年级时，is_correct_course 为 True
-                # 2. value 设为 is_correct_course，强制让不匹配的选项“不打钩”
-                # 3. disabled 设为 True，防止学生手动去勾选不符合年级的选项
-                is_correct_course = (course_name == target_course)
-                
-                checked = st.checkbox(
-                    course_name, 
-                    value=is_correct_course, # 强制状态同步
-                    disabled=True,           # 锁定状态，不允许手动更改
-                    key=f"sel_{course_name}_{grade}" # 加入 grade 变量确保年级切换时 key 刷新
-                )
-                
-                if checked:
+                is_correct = (course_name == target_course)
+                # 强制同步：只有匹配年级的才打钩，且全部设为 disabled 防止手动取消必修
+                st.checkbox(course_name, value=is_correct, disabled=True, key=f"ch_{course_name}_{grade}")
+                if is_correct:
                     selected_list.append(course_name)
-                    
-            st.caption(f"已根据您的年级 ({grade}) 自动锁定必修科目。")
 
-        # --- 其余学科组保持原样（允许自由多选/单选） ---
+        # --- Case B: 英语课程逻辑 (年级过滤 + 最多选两门) ---
+        elif "Group 2" in g_title:
+            allowed_english = english_mapping.get(grade, [])
+            
+            # 统计当前英语组已经选了多少个 (利用 session_state)
+            # 先定义一个临时列表存当前年级下哪些被勾选了
+            current_en_selections = []
+            for course_name in allowed_english:
+                if st.session_state.get(f"en_{course_name}_{grade}", False):
+                    current_en_selections.append(course_name)
+            
+            num_selected = len(current_en_selections)
+            cols = st.columns(2)
+            
+            for idx, course_name in enumerate(courses):
+                with cols[idx % 2]:
+                    # 逻辑判断：
+                    # 1. 如果不在当前年级可选列表中，强制不打钩并变灰
+                    # 2. 如果已经选满2门，且当前课程未被选中，则变灰
+                    is_in_grade = course_name in allowed_english
+                    is_checked_now = st.session_state.get(f"en_{course_name}_{grade}", False)
+                    
+                    should_disabled = not is_in_grade or (num_selected >= 2 and not is_checked_now)
+                    should_value = is_checked_now if is_in_grade else False
+
+                    if st.checkbox(
+                        course_name, 
+                        value=should_value, 
+                        disabled=should_disabled, 
+                        key=f"en_{course_name}_{grade}"
+                    ):
+                        selected_list.append(course_name)
+            
+            st.caption(f"💡 英语组提示：{grade} 可选课程已过滤，每人至多选修 2 门（已选 {num_selected}/2）。")
+
+        # --- Case C: 其他学科组保持原样 ---
         else:
             cols = st.columns(2)
             for idx, course_name in enumerate(courses):
