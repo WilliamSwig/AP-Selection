@@ -279,15 +279,16 @@ if st.button("确认并提交选课申请", type="primary", use_container_width=
     # 2. 条件判断
     if conflict_flag:
         st.error("请先修正逻辑冲突。")
+        
     elif info_incomplete:
         st.error("个人档案信息未填写完整。")
-elif empty_groups:
+        
+    elif empty_groups:
         st.error(f"每个学科组至少需选一门，请检查：{', '.join(empty_groups)}")
         
-    else:
-        # --- 注意：从这里开始，下面的代码都要比 else 往右多出 4 个空格 ---
+    else:  # <--- 确保这一行最左侧的空格数，与上面的 if/elif 完全一致
         try:
-            # 1. 构造基础信息字典
+            # 这里开始是 else 内部的代码，需要再往右缩进 4 个空格
             record = {
                 "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "CN_Name": cn_name,
