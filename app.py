@@ -246,25 +246,33 @@ for g_title, courses in course_structure.items():
 
         final_selections[g_title] = selected_list
         
-# --- 第四部分：底层逻辑冲突校验 ---
-math_choices = final_selections["Group 5: Mathematics and Computer Science - 数学与计算机 (必修)"]
-sci_choices = final_selections["Group 4: Sciences - 科学 (必修1-2门)"]
+# --- 第四部分：底层逻辑冲突校验 (逻辑更新点) ---
 
-has_pre_calc = "AP 预修微积分 (荣誉)" in math_choices
+# 获取数学组和科学组的当前选择结果
+math_choices = final_selections.get("Group 5: Mathematics and Computer Science - 数学与计算机 (必修)", [])
+sci_choices = final_selections.get("Group 4: Sciences - 科学 (必修1-2门)", [])
+
+# 逻辑定义
+has_pre_calc = "AP 预备微积分 (荣誉)" in math_choices
+# 检查是否选了任何一门物理 C (力学或电磁)
 has_physics_c = any("物理 C" in s for s in sci_choices)
-# 检查是否选择了 Calculus AB 或 BC 来满足修读 Physics C 的同步学习条件
+# 检查是否选择了 Calculus AB 或 BC 来满足修读 Physics C 的条件
 has_calculus = any("微积分 AB" in s or "微积分 BC" in s for s in math_choices)
 
 conflict_flag = False
-if has_physics_c and has_pre_calc and not has_calculus:
-    conflict_flag = True
-    st.error("⚠️ 选课逻辑冲突提示：")
-    st.markdown("""
-    **检测到冲突：** 您勾选了 **AP 物理 C 系列**，但数学组仅选择了 **AP 预修微积分**。
-    
-    **规则说明：** 根据教学手册，修读 AP 物理 C 必须先修或同步修读 **AP 微积分 AB 或 BC**。
-    请调整数学选课或更改科学组科目。
-    """)
+
+# --- 核心逻辑更改之处 ---
+# 规则：选了预备微积分，则不能选物理 C；或者：选了物理 C 必须有 Calculus
+if has_physics_c:
+    if has_pre_calc or not has_calculus:
+        conflict_flag = True
+        st.error("⚠️ 选课逻辑冲突：数学基础不足")
+        st.markdown("""
+        **检测到冲突：** 您勾选了 **AP 物理 C 系列**，但数学组选择了 **AP 预备微积分** 或未选择 **AP 微积分 AB/BC**。
+        
+        **规则说明：** 修读 AP 物理 C 必须先修或同步修读 **AP 微积分 AB 或 BC**。
+        请将数学更改为 AP 微积分 AB/BC，或将科学组改为 AP 物理 1 等其他科目。
+        """)
 
 # --- 第五部分：提交与结果汇总 ---
 st.divider()
