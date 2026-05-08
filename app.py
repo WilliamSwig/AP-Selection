@@ -34,11 +34,11 @@ c1, c2 = st.columns(2)
 with c1:
     cn_name = st.text_input("中文姓名", placeholder="请填写")
     grade = st.selectbox("当前就读年级", ["G9","G10", "G11"])
-    country = st.text_input("拟申请国家")
+    country = st.text_input("拟申请国家",placeholder="请填写")
 with c2:
     en_name = st.text_input("英文姓名", placeholder="Firstname Lastname")
-    class_name = st.text_input("行政班级")
-    major = st.text_input("拟申请专业方向")
+    class_name = st.text_input("行政班级",placeholder="请填写")
+    major = st.text_input("拟申请专业方向",placeholder="请填写")
 
 st.divider()
 
